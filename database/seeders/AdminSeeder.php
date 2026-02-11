@@ -27,8 +27,8 @@ class AdminSeeder extends Seeder
 
         //3. create admin account
         $user = User::updateOrCreate([
-           'username' => 'admin',
-           'email' => 'admin@gmail.com',
+           'username' => 'ngotu',
+           'email' => 'ngotu1@gmail.com',
             'password' => Hash::make('123456'),
             'is_active' => true,
         ]);
@@ -37,10 +37,11 @@ class AdminSeeder extends Seeder
         UserProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'phone_number' => '123354353',
+                'first_name' => 'Admin',
+                'last_name' => 'Admin',
+                'phone' => '0865492201',
                 'gender'       => 'Male',
-                'dob'          => '1990-01-01',
-                'bio'          => 'Admin system',
+                'birthday'          => '1990-01-01',
             ]
         );
 

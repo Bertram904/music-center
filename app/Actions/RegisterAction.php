@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Constants\RoleConstants;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Hash;
 
 class RegisterAction extends BaseAction
 {
@@ -22,12 +23,19 @@ class RegisterAction extends BaseAction
             $user = User::create([
                 'username' => $data['username'],
                 'email' => $data['email'],
-                'password' => bcrypt($data['password']),
+                'password' => Hash::make($data['password']),
                 'is_active' => true,
             ]);
             //2. Assign default Student role using Spatie Permission
             $user->assignRole(RoleConstants::STUDENT);
 
+            //Create user profile
+            $user->profile()->create([
+                'first_name' => null,
+                'last_name' => null,
+                'gender' => null,
+                'avatar' => null,
+            ]);
             return $user;
         });
     }

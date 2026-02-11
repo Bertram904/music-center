@@ -9,7 +9,8 @@ Route::prefix('auth')->group(function () {
 
     //Protected route
     Route::middleware('auth:api')->group(function () {
-        Route::get('me', [AuthController::class, 'me']);
+        Route::get('profile', [\App\Http\Controllers\Api\UserProfileController::class, 'me']);
+        Route::post('profile', [\App\Http\Controllers\Api\UserProfileController::class, 'update']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('refresh', [AuthController::class, 'refresh']);
     });

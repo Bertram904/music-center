@@ -64,4 +64,17 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(UserProfile::class);
     }
+    public function address() {
+        return $this->hasMany(UserAddress::class);
+    }
+
+    /**
+     * Helper in order to get is_default = true
+     *
+     * @return HasOne
+     */
+    public function defaultAddress()
+    {
+        return $this->hasOne(UserAddress::class)->where('is_default', true)->withDefault();
+    }
 }
