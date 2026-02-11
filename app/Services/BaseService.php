@@ -22,7 +22,7 @@ abstract class BaseService
      * @param Model $model
      */
     public function __construct(Model $model) {
-        $this->setModel();
+        $this->model = $model;
     }
     /**
      * get all records
@@ -39,7 +39,7 @@ abstract class BaseService
      * @param int|string $id
      * @return Model|null
      */
-    public function find(int $id): ?Model
+    public function find($id): ?Model
     {
         return $this->model->find($id);
     }
@@ -52,7 +52,7 @@ abstract class BaseService
      */
     public function findOrFail($id): Model
     {
-        return $this->findOrFail($id);
+        return $this->model->findOrFail($id);
     }
 
     /**
@@ -73,12 +73,12 @@ abstract class BaseService
      * @param array $attributes
      * @return Model
      */
-    public function update(array $attributes, int $id): Model
+    public function update(int|string $id, array $attributes): Model
     {
         $record = $this->findOrFail($id);
         $record->update($attributes);
 
-        return $record;
+        return $record->refresh();
     }
 
     /**
@@ -87,35 +87,20 @@ abstract class BaseService
      * @param int|string $id
      * @return bool|null
      */
-    public function delete(int $id): ?bool
+    public function delete(int|string $id): ?bool
     {
         $record = $this->findOrFail($id);
         return $record->delete();
     }
 
     /**
-     * Paginate the given query.
-     *
      * @param int $limit
+     * @param array $column
      * @return LengthAwarePaginator
      */
-    public function pagniate(int $limit = 10): LengthAwarePaginator
+    public function paginate(int $limit = 10, array $column = ['*']): LengthAwarePaginator
     {
-        return $this->model->pagniate($limit);
-    }
-
-    /**
-     * Specify Model class name
-     * @return void
-     */
-    private function setModel(): void
-    {
-        $newModel = App::make($this->model);
-
-        if (!($newModel instanceof Model)) {
-            throw new \Exception("Class {$newModel} must be an instance of Illuminate\\Database\\Eloquent\\Model}");
-        }
-        $this->model = $newModel;
+        return $this->model->latest()->paginate($limit);
     }
 
     /**
@@ -124,7 +109,7 @@ abstract class BaseService
      *
      * @param callable $callback
      * @return mixed
-     * @throws \Exception
+     * @throws \Throwable
      */
     protected function runInTransaction(callable $callback)
     {
@@ -135,16 +120,18 @@ abstract class BaseService
             DB::commit();
 
             return $result;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             DB::rollBack();
 
             Log::error("Transaction failed in " . static::class, [
                 'message' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),
+                'line' => $exception->getLine(),
+                'file' => $exception->getFile(),
+                'user_id' => auth()->id() ?? 'Guest'
             ]);
             throw $exception;
         }
     }
-
 }
 

@@ -1,11 +1,14 @@
 <?php
 
 use App\Constants\ApiCodes;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Validation\ValidationException;
 use MarcinOrlowski\ResponseBuilder\ResponseBuilder;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -23,8 +26,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Authentication Exception
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'code'    => ApiCodes::UNAUTHORIZED_EXCEPTION,
+                    'locale'  => 'en',
+                    'message' => 'Unauthenticated or Token Expired.',
+                    'data'    => null
+                ], 401);
+            }
+        });
         // Solve validation problem
-        $exceptions->render(function (ValidationException $exception, $request) {
+        $exceptions->render(function (ValidationException $exception, Request $request) {
             return ResponseBuilder::asError(ApiCodes::VALIDATION_EXCEPTION)
                 ->withData($exception->errors())
                 ->withHttpCode(422)

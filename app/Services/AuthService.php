@@ -53,7 +53,8 @@ class AuthService extends BaseService
      */
     public function logout(): void
     {
-        $this->guard()->logout();
+        //Dam bao token bi vo hieu hoa
+        $this->guard()->logout(true);
     }
 
     /**

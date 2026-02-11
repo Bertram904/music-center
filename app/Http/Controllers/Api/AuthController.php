@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Auth\LoginAction;
-use App\Exceptions\Auth\AccountLockedException;
-use App\Exceptions\Auth\LoginFailedException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -26,7 +23,8 @@ class AuthController extends Controller
     {
         $data = $this->authService->login($request->validated());
 
-        return $this->respondSuccess($data, 'Login successful!');
+        return $this->respondSuccess($data,
+            'Login successful!');
     }
 
     /**
@@ -36,7 +34,8 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->authService->register($request->validated());
-        return $this->respondCreated(['user' => $user], 'Registration successful!');
+        return $this->respondCreated(['user' => $user],
+            'Registration successful!');
     }
 
     /**
@@ -45,12 +44,28 @@ class AuthController extends Controller
     public function me(): JsonResponse
     {
         $user = $this->authService->getProfile();
-        return $this->respondSuccess($user, 'Profile successful!');
+        return $this->respondSuccess($user,
+            'Profile successful!');
     }
 
     public function logout(): JsonResponse
     {
         $this->authService->logout();
-        return $this->respondSuccess(null, 'Logout successful!');
+        return $this->respondSuccess(null,
+            'Logout successful!');
+    }
+
+    /**
+     * This method invalidates the old tokens and returns a new one
+     * with a fresh expiration time. This is essential for maintaining long-lived sessions
+     * without forcing the user re-login
+     * @return JsonResponse
+     */
+    public function refresh(): JsonResponse
+    {
+        $data = $this->authService->refresh();
+
+        return $this->respondSuccess($data,
+        'Token refreshed successfully!');
     }
 }

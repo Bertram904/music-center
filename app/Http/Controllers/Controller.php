@@ -17,7 +17,7 @@ abstract class Controller
      */
     protected function respondSuccess($data = null, ?string $message = null): Response
     {
-        return ResponseBuilder::asSuccess()
+        return ResponseBuilder::asSuccess(BusinessCodes::SUCCESS)
             ->withData($data)
             ->withMessage($message)
             ->build();
