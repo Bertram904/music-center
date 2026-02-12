@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -28,9 +28,9 @@ abstract class BaseService
      * get all records
      * @return Collectionn
      */
-    public function getAll(): Collection
+    public function getAll(array $column = ['*']): Collection
     {
-        return $this->model->all();
+        return $this->model->all($column);
     }
 
     /**
@@ -39,9 +39,9 @@ abstract class BaseService
      * @param int|string $id
      * @return Model|null
      */
-    public function find($id): ?Model
+    public function find($id, array $column = ['*']): ?Model
     {
-        return $this->model->find($id);
+        return $this->model->find($id, $column);
     }
 
     /**
@@ -50,9 +50,9 @@ abstract class BaseService
      * @return Model
      * @throws ModelNotFoundException
      */
-    public function findOrFail($id): Model
+    public function findOrFail($id, array $column = ['*']): Model
     {
-        return $this->model->findOrFail($id);
+        return $this->model->findOrFail($id, $column);
     }
 
     /**
@@ -100,7 +100,12 @@ abstract class BaseService
      */
     public function paginate(int $limit = 10, array $column = ['*']): LengthAwarePaginator
     {
-        return $this->model->latest()->paginate($limit);
+        return $this->model->latest()->paginate($limit, $column);
+    }
+
+    public function restore(int|string $id): bool {
+        $record = $this->model->withTrashed()->findOrFail($id);
+        return $record->restore();
     }
 
     /**
@@ -124,11 +129,11 @@ abstract class BaseService
             DB::rollBack();
 
             Log::error("Transaction failed in " . static::class, [
-                'message' => $exception->getMessage(),
+                'error' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),
                 'line' => $exception->getLine(),
                 'file' => $exception->getFile(),
-                'user_id' => auth()->id() ?? 'Guest'
+                'user_id' => Auth::id() ?? 'Guest'
             ]);
             throw $exception;
         }

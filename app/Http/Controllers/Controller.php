@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Constants\BusinessCodes;
+use App\Http\Response\ApiResponse;
 use MarcinOrlowski\ResponseBuilder\ResponseBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,10 +18,7 @@ abstract class Controller
      */
     protected function respondSuccess($data = null, ?string $message = null): Response
     {
-        return ResponseBuilder::asSuccess(BusinessCodes::SUCCESS)
-            ->withData($data)
-            ->withMessage($message)
-            ->build();
+        return ApiResponse::success($data, $message);
     }
 
     /**
@@ -32,11 +30,7 @@ abstract class Controller
      */
     protected function respondCreated($data = null, ?string $message = null): Response
     {
-        return ResponseBuilder::asSuccess(BusinessCodes::CREATED)
-            ->withData($data)
-            ->withMessage($message)
-            ->withHttpCode(Response::HTTP_CREATED)
-            ->build();
+        return ApiResponse::created($data, $message);
     }
 
     /**
@@ -48,12 +42,13 @@ abstract class Controller
      * @param mixed|null $data
      * @return Response
      */
-    protected function responndError($data = null, ?string $message = null, int $apiCode, int $httpCode): Response
+    protected function respondError(
+        int $apiCode,
+        int $httpCode,
+        $data = null,
+        ?string $message = null
+    ): Response
     {
-        return ResponseBuilder::asError($apiCode)
-            ->withData($data)
-            ->withMessage($message)
-            ->withHttpCode($httpCode)
-            ->build();
+        return ApiResponse::error($apiCode, $httpCode, $data, $message);
     }
 }

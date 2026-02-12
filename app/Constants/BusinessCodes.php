@@ -10,8 +10,10 @@ class BusinessCodes extends BaseCodes
     /*
      * MODULE AUTH & USER
      */
+    public const UNAUTHORIZED = 401;
     public const SUCCESS = 1000;
     public const CREATED = 1001;
+    public const UPDATED = 1002;
     public const ACCOUNT_LOCKED = 2001;
     public const INVALID_CREDENTIALS = 2002;
     public const AUTH_LOGIN_FAILED = 2003;
