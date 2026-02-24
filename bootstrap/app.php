@@ -25,13 +25,13 @@ return Application::configure(basePath: dirname(__DIR__))
            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         // Authentication Exception
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*') || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'code'    => ApiCodes::UNAUTHORIZED_EXCEPTION,
+                    'code'    => ApiCodes::UNAUTHENTICATED_EXCEPTION,
                     'locale'  => 'en',
                     'message' => 'Unauthenticated or Token Expired.',
                     'data'    => null

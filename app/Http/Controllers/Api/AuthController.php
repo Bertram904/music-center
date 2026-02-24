@@ -38,16 +38,6 @@ class AuthController extends Controller
             'Registration successful!');
     }
 
-    /**
-     * @return JsonResponse
-     */
-    public function me(): JsonResponse
-    {
-        $user = $this->authService->getProfile();
-        return $this->respondSuccess($user,
-            'Profile successful!');
-    }
-
     public function logout(): JsonResponse
     {
         $this->authService->logout();
