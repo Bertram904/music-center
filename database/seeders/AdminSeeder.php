@@ -40,8 +40,8 @@ class AdminSeeder extends Seeder
                 'first_name' => 'Admin',
                 'last_name' => 'Admin',
                 'phone' => '0865492201',
-                'gender'       => 'Male',
-                'birthday'          => '1990-01-01',
+                'gender' => 'Male',
+                'birthday' => '1990-01-01',
             ]
         );
 

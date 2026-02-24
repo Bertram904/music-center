@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectTo(
+            guests: fn (Request $request) => $request->is('api/*') ? null : route('login')
+        );
         //alias middleware of spatie
         $middleware->alias([
            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
@@ -26,37 +29,51 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Authentication Exception
-        $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*') || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'code'    => ApiCodes::UNAUTHENTICATED_EXCEPTION,
-                    'locale'  => 'en',
-                    'message' => 'Unauthenticated or Token Expired.',
-                    'data'    => null
-                ], 401);
-            }
+
+        // 1. Authentication Exception
+        $exceptions->render(function (AuthenticationException $exception, Request $request) {
+            return ResponseBuilder::asError(ApiCodes::UNAUTHENTICATED_EXCEPTION)
+                ->withHttpCode(Response::HTTP_UNAUTHORIZED)
+                ->withMessage(__('Unauthenticated or Token expired.'))
+                ->build();
         });
-        // Solve validation problem
+        // 2. Solve validation problem
         $exceptions->render(function (ValidationException $exception, Request $request) {
             return ResponseBuilder::asError(ApiCodes::VALIDATION_EXCEPTION)
-                ->withData($exception->errors())
-                ->withHttpCode(422)
+                ->withData(['errors' => $exception->errors()])
+                ->withMessage($exception->getMessage())
+                ->withHttpCode(Response::HTTP_UNPROCESSABLE_ENTITY)
                 ->build();
         });
-        //handle 404 not found
+        // 3. handle 404 not found
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\ResolverNotFoundException $exception) {
            return ResponseBuilder::asError(ApiCodes::HTTP_NOT_FOUND)
-           ->withHttpCode(404)
+           ->withHttpCode(Response::HTTP_NOT_FOUND)
+               ->withMessage($exception->getMessage() ?: __('Resource not found.'))
            ->build();
         });
-        //handle UNCAUGHT
-        $exceptions->render(function(Throwable $exception, $request) {
-            return ResponseBuilder::asError(ApiCodes::UNCAUGHT_EXCEPTION)
-                ->withMessage($exception->getMessage()) // turn on when APP_DEBUG = true
-                ->withHttpCode(500)
-                ->build();
+        // 4. 403 Forbidden
+        $exceptions->render(function (\Symfony\Component\Finder\Exception\AccessDeniedException $exception, Request $request) {
+           return ResponseBuilder::asError(ApiCodes::HTTP_FORBIDDEN)
+           ->withHttpCode(Response::HTTP_FORBIDDEN)
+           ->withMessage($exception->getMessage() ?: __('Access denied.'))
+           ->build();
+        });
+        // 5. Internal Server Error
+        $exceptions->render(function(Throwable $exception, Request $request) {
+            if ($request->is('api/*')) {
+                $debug = config('app.debug');
+                return ResponseBuilder::asError(ApiCodes::UNCAUGHT_EXCEPTION)
+                    ->withMessage($exception->getMessage() ?: __('Internal server error.'))
+                    ->withHttpCode(Response::HTTP_INTERNAL_SERVER_ERROR)
+                    ->withData($debug ? [
+                        'exception' => get_class($exception),
+                        'file' => $exception->getFile(),
+                        'line' => $exception->getLine(),
+                        'trace' => collect($exception->getTrace())->take(5),
+                    ] : null)
+                    ->build();
+            }
         });
 
     })->create();
