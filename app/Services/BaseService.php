@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Shared\Filters\QueryFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +23,11 @@ abstract class BaseService
      * BaseService constructor.
      * @param Model $model
      */
-    public function __construct(Model $model) {
+    public function __construct(Model $model)
+    {
         $this->model = $model;
     }
+
     /**
      * get all records
      * @return Collectionn
@@ -103,7 +107,8 @@ abstract class BaseService
         return $this->model->latest()->paginate($limit, $column);
     }
 
-    public function restore(int|string $id): bool {
+    public function restore(int|string $id): bool
+    {
         $record = $this->model->withTrashed()->findOrFail($id);
         return $record->restore();
     }
@@ -136,6 +141,45 @@ abstract class BaseService
                 'user_id' => Auth::id() ?? 'Guest'
             ]);
             throw $exception;
+        }
+    }
+
+    protected function applyAdvancedFilter(
+        Builder     $query,
+        QueryFilter $filter,
+        array       $searchableColumns = [],
+        array       $sortableColumns = ['id', 'created_at']
+    ): void
+    {
+        // 1. global search
+        if (!empty($filter->keyword) && !empty($searchableColumns)) {
+            $keywords = preg_split("/\s+/", trim($filter->keyword));
+            $query->where(function ($query) use ($searchableColumns, $keywords) {
+                foreach ($keywords as $keyword) {
+                    $query->where(function ($query) use ($searchableColumns, $keyword) {
+                       foreach ($searchableColumns as $column) {
+                           $query->orWhere($column, 'LIKE', "%{$keyword}%");
+                       }
+                    });
+                }
+            });
+        }
+        // 2. exact match
+        foreach ($filter->exact as $column => $value) {
+            $query->where($column, $value);
+        }
+        // 3. ranges (from-to)
+        foreach ($filter->range as $column => $range) {
+            if (!empty($range['from'])) {
+                $query->where($column, '>=', $range['from']);
+            }
+            if (!empty($range['to'])) {
+                $query->where($column, '<=', $range['to']);
+            }
+        }
+        // 4. dynamic sorting
+        if (!empty($filter->sortBy) && in_array($filter->sortBy, $sortableColumns)) {
+            $query->orderBy($filter->sortBy, $filter->sortDir);
         }
     }
 }
