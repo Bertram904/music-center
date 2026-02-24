@@ -9,23 +9,24 @@ use Illuminate\Validation\ValidationException;
 use MarcinOrlowski\ResponseBuilder\ResponseBuilder;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Spatie\Permission\Exceptions\UnauthorizedException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectTo(
-            guests: fn (Request $request) => $request->is('api/*') ? null : route('login')
+            guests: fn(Request $request) => $request->is('api/*') ? null : route('login')
         );
         //alias middleware of spatie
         $middleware->alias([
-           'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-           'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-           'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -47,20 +48,28 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         // 3. handle 404 not found
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\ResolverNotFoundException $exception) {
-           return ResponseBuilder::asError(ApiCodes::HTTP_NOT_FOUND)
-           ->withHttpCode(Response::HTTP_NOT_FOUND)
-               ->withMessage($exception->getMessage() ?: __('Resource not found.'))
-           ->build();
+            return ResponseBuilder::asError(ApiCodes::HTTP_NOT_FOUND)
+                ->withHttpCode(Response::HTTP_NOT_FOUND)
+                ->withMessage($exception->getMessage() ?: __('Resource not found.'))
+                ->build();
         });
         // 4. 403 Forbidden
         $exceptions->render(function (\Symfony\Component\Finder\Exception\AccessDeniedException $exception, Request $request) {
-           return ResponseBuilder::asError(ApiCodes::HTTP_FORBIDDEN)
-           ->withHttpCode(Response::HTTP_FORBIDDEN)
-           ->withMessage($exception->getMessage() ?: __('Access denied.'))
-           ->build();
+            return ResponseBuilder::asError(ApiCodes::HTTP_FORBIDDEN)
+                ->withHttpCode(Response::HTTP_FORBIDDEN)
+                ->withMessage($exception->getMessage() ?: __('Access denied.'))
+                ->build();
         });
-        // 5. Internal Server Error
-        $exceptions->render(function(Throwable $exception, Request $request) {
+
+        // 5. Unauthorized
+        $exceptions->render(function (UnauthorizedException $e, Request $request) {
+            return ResponseBuilder::asError(ApiCodes::HTTP_FORBIDDEN)
+                ->withHttpCode(Response::HTTP_FORBIDDEN)
+                ->withMessage(__('User does not have the right roles or permissions.'))
+                ->build();
+        });
+        // 6. Internal Server Error
+        $exceptions->render(function (Throwable $exception, Request $request) {
             if ($request->is('api/*')) {
                 $debug = config('app.debug');
                 return ResponseBuilder::asError(ApiCodes::UNCAUGHT_EXCEPTION)
